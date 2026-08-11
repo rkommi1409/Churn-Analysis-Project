@@ -55,6 +55,13 @@ GROUP BY
  END 
 ORDER BY churn_rate_pct DESC;
 
+-- Result: 0-12 months  -> 47.44% churn (highest risk)
+--         13-24 months -> 28.71% churn
+--         25-48 months -> 20.39% churn
+--         49+ months   -> 9.51% churn (lowest risk)
+-- Insight: Churn risk declines steadily with tenure -
+-- new customers churn ~5x more than long-tenured ones.
+
 -- ------------------------------------------------
 -- Query 4: Churn rate by TechSupport
 -- Purpose: Test whether lack of tech support access
@@ -69,3 +76,11 @@ SELECT
      FROM Customers
      GROUP BY TechSupport
      ORDER BY churn_rate_pct DESC;
+
+-- Result: No TechSupport  -> 41.64% churn (high risk)
+--         Has TechSupport -> 15.17% churn
+--         No internet svc -> 7.40% churn (simpler service, lower risk)
+-- Insight: Lack of tech support is a strong churn driver -
+-- customers without it churn ~3x more than those with it.
+-- Note: TechSupport imported as bit (0/1/NULL) instead of
+-- text - same quirk as Churn column.
