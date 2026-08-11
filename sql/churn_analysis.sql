@@ -27,3 +27,30 @@ FROM customers
 GROUP BY Contract
 ORDER BY churn_rate_pct DESC;
 
+
+-- ------------------------------------------------
+-- Query 3: Churn rate by Tenure group
+-- Purpose: Test whether newer customers (shorter
+-- tenure) churn at a higher rate than long-standing
+-- customers
+-- ------------------------------------------------
+
+SELECT 
+  CASE 
+      WHEN tenure <= 12 THEN '0-12 months'
+      WHEN tenure <= 24 THEN '13-24 months'
+      WHEN tenure <= 48 THEN '25-48 months'
+      ELSE '49+ months'
+    END AS tenure_group,
+    COUNT(*) AS tenure_customers,
+    SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) AS churned_cuatomers,
+    CAST(SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) *100.0 /COUNT(*) AS DECIMAL(5, 2 )) AS churn_rate_pct
+FROM Customers
+GROUP BY 
+  CASE 
+    WHEN tenure <= 12 THEN '0-12 months'
+    WHEN tenure <= 24 THEN '13-24 months'
+    WHEN tenure <= 48 THEN '25-48 months'
+  ELSE '49+ months'
+ END 
+ORDER BY churn_rate_pct DESC;
