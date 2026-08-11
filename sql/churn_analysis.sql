@@ -119,3 +119,81 @@ ORDER BY churn_rate_pct DESC;
 -- suggesting perceived value (not just price) drives churn.
 -- Likely connects to TechSupport finding - premium bundles
 -- may include support that increases perceived value.
+
+
+-- ------------------------------------------------
+-- Query 6: Customer risk segmentation
+-- Addresses BRD Functional Requirement: FR-02
+-- Purpose: Assign each customer a risk score based on
+-- proven churn drivers (Contract, Tenure, TechSupport),
+-- then classify into High/Medium/Low risk tiers
+-- ------------------------------------------------
+
+SELECT
+    customerID,
+    Contract,
+    tenure,
+    TechSupport,
+    Churn,
+    (
+        CASE WHEN Contract = 'Month-to-month' THEN 2 ELSE 0 END +
+        CASE WHEN tenure <= 12 THEN 2 ELSE 0 END +
+        CASE WHEN TechSupport = 0 THEN 1 ELSE 0 END
+    ) AS risk_score,
+    CASE 
+        WHEN (
+               CASE WHEN Contract = 'Month-to-month' THEN 2 ELSE 0 END +
+               CASE WHEN tenure <=12 THEN 2 ELSE 0 END +
+               CASE WHEN TechSupport = 0 THEN 2 ELSE 0 END 
+            )  >=4 THEN 'High Risk'
+        WHEN (
+                CASE WHEN Contract = 'Month-to-month' THEN 2 ELSE 0 END +
+               CASE WHEN tenure <=12 THEN 2 ELSE 0 END +
+               CASE WHEN TechSupport = 0 THEN 2 ELSE 0 END 
+            )  >=2 THEN 'Medium Risk'
+            ELSE 'Low Risk'
+    END AS risk_tier
+FROM customers;
+
+
+
+-- ------------------------------------------------
+-- Query 7: Risk tier summary with revenue at risk
+-- Addresses BRD Functional Requirements: FR-02, FR-03
+-- Purpose: Summarize customer counts, churn rate, and
+-- Monthly Recurring Revenue at risk per risk tier
+-- ------------------------------------------------
+
+
+SELECT
+    risk_tier,
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) AS actual_churned,
+    CAST(SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS DECIMAL(5,2)) AS actual_churn_rate_pct,
+    CAST(SUM(MonthlyCharges) AS DECIMAL(10,2)) AS total_mrr_in_tier
+FROM (
+    SELECT
+        customerID,
+        Churn,
+        MonthlyCharges,
+        CASE 
+            WHEN (
+                CASE WHEN Contract = 'Month-to-month' THEN 2 ELSE 0 END +
+                CASE WHEN tenure <= 12 THEN 2 ELSE 0 END +
+                CASE WHEN TechSupport = 0 THEN 1 ELSE 0 END
+            ) >= 4 THEN 'High Risk'
+            WHEN (
+                CASE WHEN Contract = 'Month-to-month' THEN 2 ELSE 0 END +
+                CASE WHEN tenure <= 12 THEN 2 ELSE 0 END +
+                CASE WHEN TechSupport = 0 THEN 1 ELSE 0 END
+            ) >= 2 THEN 'Medium Risk'
+            ELSE 'Low Risk'
+        END AS risk_tier
+    FROM customers
+) AS scored_customers
+GROUP BY risk_tier
+ORDER BY total_mrr_in_tier DESC;
+
+
+
+
