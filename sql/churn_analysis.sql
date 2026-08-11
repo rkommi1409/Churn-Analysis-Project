@@ -54,3 +54,18 @@ GROUP BY
   ELSE '49+ months'
  END 
 ORDER BY churn_rate_pct DESC;
+
+-- ------------------------------------------------
+-- Query 4: Churn rate by TechSupport
+-- Purpose: Test whether lack of tech support access
+-- is correlated with higher churn
+-- ------------------------------------------------
+
+SELECT 
+     TechSupport,
+     COUNT(*)  AS total_customers,
+     SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) AS chruned_customers,
+     CAST(SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END)* 100.0/ COUNT(*) AS DECIMAL(5,2)) AS churn_rate_pct
+     FROM Customers
+     GROUP BY TechSupport
+     ORDER BY churn_rate_pct DESC;
