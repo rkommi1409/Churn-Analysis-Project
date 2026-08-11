@@ -84,3 +84,38 @@ SELECT
 -- customers without it churn ~3x more than those with it.
 -- Note: TechSupport imported as bit (0/1/NULL) instead of
 -- text - same quirk as Churn column.
+
+-- ------------------------------------------------
+-- Query 5: Churn rate by MonthlyCharges range
+-- Purpose: Test whether higher-paying customers churn
+-- more than lower-paying ones
+-- ------------------------------------------------
+SELECT 
+    CASE 
+        WHEN MonthlyCharges < 35 THEN 'Under $35'
+        WHEN MonthlyCharges < 65 THEN '$35-$65'
+        WHEN MonthlyCharges < 95 THEN '$65-$95'
+        ELSE '$95+'
+    END AS charge_range,
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) AS churned_customers,
+    CAST(SUM(CASE WHEN Churn = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS DECIMAL(5,2)) AS churn_rate_pct
+FROM customers
+GROUP BY 
+    CASE 
+        WHEN MonthlyCharges < 35 THEN 'Under $35'
+        WHEN MonthlyCharges < 65 THEN '$35-$65'
+        WHEN MonthlyCharges < 95 THEN '$65-$95'
+        ELSE '$95+'
+    END
+ORDER BY churn_rate_pct DESC;
+
+-- Result: $65-$95    -> 35.94% churn (highest risk)
+--         $95+       -> 32.26% churn
+--         $35-$65    -> 23.15% churn
+--         Under $35  -> 10.86% churn (lowest risk)
+-- Insight: Churn rises with price but isn't purely linear -
+-- the $65-$95 "mid-tier" range churns more than $95+,
+-- suggesting perceived value (not just price) drives churn.
+-- Likely connects to TechSupport finding - premium bundles
+-- may include support that increases perceived value.
